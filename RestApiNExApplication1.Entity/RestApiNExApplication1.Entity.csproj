@@ -20,13 +20,6 @@
       <LastGenOutput>1_t4EntityHelpersGenerate.cs</LastGenOutput>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Update="1_t4EntityHelpersGenerate.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>1_t4EntityHelpersGenerate.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
 
   <ItemGroup>
     <None Update="t4_AddMigration.tt">
@@ -35,11 +28,19 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="1_t4EntityHelpersGenerate.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>1_t4EntityHelpersGenerate.tt</DependentUpon>
+    </Compile>
     <Compile Update="t4_AddMigration.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>t4_AddMigration.tt</DependentUpon>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
 </Project>
