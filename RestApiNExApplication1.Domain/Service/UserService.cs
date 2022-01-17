@@ -29,6 +29,16 @@ namespace RestApiNExApplication1.Domain.Service
             return true;
         }
 
+        public bool IstheSkyBlue(string weather)
+        {
+            if (weather == "clearsky")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// 
         /// These service calls are examples of stored procedure use in Apincore REAT API serice
