@@ -1,0 +1,10 @@
+﻿//
+//NOTE: All packages with proper versions will be installed automatically by VS 
+//
+
+PM> Install-Package Microsoft.AspNetCore.Mvc.Testing  
+PM> Install-Package Microsoft.NET.Test.Sdk  
+
+//test credentials
+my@email.com 
+mysecretpassword123

@@ -1,0 +1,235 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="EnvDTE" #>
+<#@ assembly name="Microsoft.VisualStudio.OLE.Interop" #>
+<#@ assembly name="Microsoft.VisualStudio.Shell" #>
+<#@ assembly name="Microsoft.VisualStudio.Shell.Interop" #>
+<#@ assembly name="Microsoft.VisualStudio.Shell.Interop.8.0" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Reflection"#>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#+
+
+/// <summary>
+/// Designed by AnaSoft Inc. 2019-2020(c)
+/// http://www.anasoft.net/apincore 
+/// 
+///  
+/// NOTE:
+/// T4 generated code may need additional updates/addjustments by developer in order to compile a solution.
+/// Generated code using this text template may contain code with unintentional flaws or limitations. 
+/// Please adjust created code to your needs and test it before any production use.
+/// 
+/// </summary>
+public class TemplateCommon
+{
+
+//Get missing transientService injections
+public List<EnvDTE.CodeClass> GetMissingTransientServiceInjections(string sourceProjectName, string baseClassNameSource, string searchFullProjectName, string searchClassName, string searchTemplateText)
+{
+
+	//get current VS solution
+	EnvDTE.DTE dte = GetVSEnvDTE();
+
+	EnvDTE.ProjectItem projectClassFile = null;
+
+	//get all classes
+	foreach (EnvDTE.Project project in dte.Solution.Projects)
+	{
+		string itemName= project.Name;
+		if (itemName == searchFullProjectName)
+		{
+			//var allClasses = GetProjectItems(project.ProjectItems).Where(v => v.Name.Contains(".cs")); //issue with System.Linq
+			foreach(EnvDTE.ProjectItem pi in GetProjectItems(project.ProjectItems))
+			{
+			    //code files with cs extension and exclude file which tt extension 
+				if(pi.Name.Contains(searchClassName + ".cs"))  
+					{projectClassFile = pi; 
+					break;}
+			}   
+		}
+	}
+
+
+	List<EnvDTE.CodeClass> sourceClasses = GetClassesByProjectNameAndBaseClassName(sourceProjectName, baseClassNameSource);
+	var missingTransientServiceInjections = new List<EnvDTE.CodeClass>();
+	projectClassFile.Open(EnvDTE.Constants.vsViewKindCode); //set active or .Document = null
+
+	foreach(EnvDTE.CodeClass ce in sourceClasses)
+	{
+		var cename = ce.Name;
+		var searchText = searchTemplateText.Replace("Entity",cename);
+		EnvDTE.Document searchDoc = projectClassFile.Document;
+		if(!ExistsinDTEDocument(searchDoc ,searchText))   
+			missingTransientServiceInjections.Add(ce);
+	}
+
+	//return
+	return missingTransientServiceInjections;
+
+}
+
+//mimic Exist method exists methode on EnvDTE.Document 
+public bool ExistsinDTEDocument(EnvDTE.Document doc, string text)
+{
+	return doc.ReplaceText(text,text); //if found replace with the same text and return True otherwise return False
+}
+
+//Get classes to create
+public List<EnvDTE.CodeClass> GetClassesToCreate(bool deleteExistingClassesinTarget, string sourceProjectName, string baseClassNameSource, string targetProjectName, string baseClassNameTarget, string suffixTargetName)
+{
+	List<EnvDTE.CodeClass> sourceClasses = GetClassesByProjectNameAndBaseClassName(sourceProjectName, baseClassNameSource);
+	List<EnvDTE.CodeClass> targetClasses = GetClassesByProjectNameAndBaseClassName(targetProjectName, baseClassNameTarget);
+	List<EnvDTE.CodeClass> sourceClassesNotExistsinTarget = new List<EnvDTE.CodeClass>();
+	
+	foreach(EnvDTE.CodeClass ce in sourceClasses)
+	{
+		var cename = ce.Name;
+		bool notFoundinTarget = true;
+		foreach(EnvDTE.CodeClass cd in targetClasses)
+		{
+			var cdname = ce.Name + suffixTargetName;
+			if(cdname == cd.Name)
+				notFoundinTarget = false;
+			if(cdname == cd.Name && deleteExistingClassesinTarget)
+				DeleteClass(cd);
+		}
+		if(notFoundinTarget)
+			sourceClassesNotExistsinTarget.Add(ce);
+	}
+
+	//return all
+	if(deleteExistingClassesinTarget)
+		return sourceClasses;
+	else  //return not existing in target list
+		return sourceClassesNotExistsinTarget;
+
+}
+
+public void DeleteClass(EnvDTE.CodeClass cc)
+{
+//todo
+}
+
+//Get Classes By ProjectName and BaseClassName
+public List<EnvDTE.CodeClass> GetClassesByProjectNameAndBaseClassName(string fullProjectName, string baseClassName)
+{
+	
+	//get current VS solution
+	EnvDTE.DTE dte = GetVSEnvDTE();
+
+	var allProjectClassFiles = new List<EnvDTE.ProjectItem>();
+
+	//get all classes
+	foreach (EnvDTE.Project project in dte.Solution.Projects)
+	{
+		string itemName= project.Name;
+		if (itemName == fullProjectName)
+		{
+			//var allClasses = GetProjectItems(project.ProjectItems).Where(v => v.Name.Contains(".cs")); //issue with System.Linq
+			foreach(EnvDTE.ProjectItem pi in GetProjectItems(project.ProjectItems))
+			{
+			    //code files with cs extension and exclude file which tt extension 
+				if(pi.Name.Contains(".cs") && !pi.Name.Contains(".tt"))  
+					allProjectClassFiles.Add(pi);
+			}   
+		}
+	}
+
+	var allFoundClassFiles = new List<EnvDTE.CodeClass>();
+	//get classes with base class baseClassName
+	foreach (var c in allProjectClassFiles)
+	{
+		var eles = c.FileCodeModel;
+		if (eles == null)
+			continue;
+		//
+		foreach (var ele in eles.CodeElements)
+		{
+	        var ns = ele as EnvDTE.CodeNamespace;
+			if (ns == null)
+                   continue;
+            // run through classes
+			foreach(var property in ns.Members)
+           {
+		      var cc = property as EnvDTE.CodeClass;    //vsCMElementClass
+              if (cc == null)
+                   continue;
+		      var clname = cc.Name;
+			  foreach (var d in cc.Bases)
+              {
+			        var dClass = d as EnvDTE.CodeClass;
+                    if (dClass == null)
+                        continue;
+			     	//classes with base class BaseEntity
+                    if (dClass.Name == baseClassName)
+                    {
+						allFoundClassFiles.Add(cc);
+                    }
+			  }
+		   }
+		}
+	}
+
+	//return
+	return allFoundClassFiles;
+}
+
+
+//get all properties
+public IEnumerable<EnvDTE.CodeProperty> GetAllProperties(EnvDTE.CodeClass codeClass)
+{
+    var props = new List<EnvDTE.CodeProperty>();
+    foreach (EnvDTE.CodeElement elem in codeClass.Members)
+    {
+		if (elem.Kind == EnvDTE.vsCMElement.vsCMElementProperty)  
+		{
+			var prop = elem as EnvDTE.CodeProperty;
+			props.Add(prop);
+		}
+    }
+    return props;
+}
+
+//get project items
+IEnumerable<EnvDTE.ProjectItem> GetProjectItems(EnvDTE.ProjectItems projectItems)
+{
+    foreach (EnvDTE.ProjectItem item in projectItems)
+    {
+        yield return item;
+        if (item.SubProject != null)
+        {
+            foreach (EnvDTE.ProjectItem childItem in GetProjectItems(item.SubProject.ProjectItems))
+                yield return childItem;
+        }
+        else
+        {
+            foreach (EnvDTE.ProjectItem childItem in GetProjectItems(item.ProjectItems))
+                yield return childItem;
+        }
+    }
+}
+
+//get DTE
+public EnvDTE.DTE GetVSEnvDTE()
+{
+	//get current VS solution in 
+	//IServiceProvider serviceProvider = (IServiceProvider)this.Host;
+    //DTE dte = ((IServiceProvider)this.Host).GetCOMService(typeof(DTE)) as DTE;
+	EnvDTE.DTE dte = null;
+	try
+	{
+		dte = (EnvDTE.DTE)System.Runtime.InteropServices.Marshal.GetActiveObject("VisualStudio.DTE");   //generic
+	}
+	catch
+	{
+		dte = (EnvDTE.DTE)System.Runtime.InteropServices.Marshal.GetActiveObject("VisualStudio.DTE.16.0");  //VS2019
+
+	}
+	return dte;
+}
+
+
+}
+#>

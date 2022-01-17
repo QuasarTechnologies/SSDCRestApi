@@ -1,0 +1,13 @@
+RestApiN.Postman_tests_collection.json
+report-summary.html
+template-report-summary.hbs
+report-detailed.html
+JWT
+1
+Failed-RestApiNExApplication1 Postman tests
+Passed-RestApiNExApplication1 Postman tests
+True
+False
+your.mail.server.com
+your@email.ca
+RestApiNExApplication1
