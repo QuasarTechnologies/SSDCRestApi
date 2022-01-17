@@ -21,6 +21,7 @@ namespace RestApiNExApplication1.Domain.Service
                 _mapper = mapper;
         }
 
+        public IUnitOfWork UnitOfWork { get; set; }
         //add here any custom service method or override genericasync service method
         //...
     }
